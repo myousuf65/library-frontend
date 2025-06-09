@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Drawer,
@@ -19,15 +19,14 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import HelpIcon from '@mui/icons-material/Help';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import authService from '../../services/authService';
 
-const drawerWidth = 240;
+const drawerWidth = 200;
 
 // Admin menu items
 const adminMenuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
   { text: 'Books', icon: <MenuBookIcon />, path: '/admin/books' },
-  { text: 'Students', icon: <PeopleIcon />, path: '/admin/students' },
+  // { text: 'Students', icon: <PeopleIcon />, path: '/admin/students' },
   { text: 'Authors', icon: <PersonIcon />, path: '/admin/authors' },
   { text: 'Transactions', icon: <SwapHorizIcon />, path: '/admin/transactions' },
 ];
@@ -47,21 +46,6 @@ const secondaryMenuItems = [
 const Sidebar = ({ open, onClose, variant, userType = 'admin' }) => {
   const location = useLocation();
   const menuItems = userType === 'admin' ? adminMenuItems : studentMenuItems;
-  const [realName, setRealName] = useState('');
-
-  useEffect(() => {
-    if (userType === 'student') {
-      authService.getCurrentUser()
-        .then((data) => {
-          if (data && data.name) {
-            setRealName(data.name);
-          }
-        })
-        .catch(() => {
-          setRealName('Student');
-        });
-    }
-  }, [userType]);
 
   const drawer = (
     <>
@@ -70,7 +54,7 @@ const Sidebar = ({ open, onClose, variant, userType = 'admin' }) => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          p: 2,
+          marginTop: "100px"
         }}
       >
         <Avatar 
@@ -78,7 +62,6 @@ const Sidebar = ({ open, onClose, variant, userType = 'admin' }) => {
             width: 60, 
             height: 60, 
             mb: 1, 
-            mt: 8,
             bgcolor: userType === 'admin' ? 'secondary.main' : 'primary.main' 
           }}
         >
@@ -88,7 +71,7 @@ const Sidebar = ({ open, onClose, variant, userType = 'admin' }) => {
           {userType === 'admin' ? 'Administrator' : 'Student'}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {userType === 'admin' ? 'Library Admin' : realName || 'Student'}
+          {userType === 'admin' ? 'Library Admin' : 'John Doe'}
         </Typography>
       </Box>
       <Divider />

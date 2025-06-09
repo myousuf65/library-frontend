@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
 	Box,
 	Typography,
@@ -28,79 +28,102 @@ import {
 	Pagination,
 	Tab,
 	Tabs,
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CloseIcon from '@mui/icons-material/Close';
-import ImageIcon from '@mui/icons-material/Image';
-import { Link } from 'react-router-dom';
-import bookService from '../services/bookService';
-import authorService from '../services/authorService';
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
+import ImageIcon from "@mui/icons-material/Image";
+import { Link } from "react-router-dom";
+import bookService from "../services/bookService";
+import authorService from "../services/authorService";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../config/firebase";
 
 const Books = () => {
 	const [page, setPage] = useState(0);
 	const [rowsPerPage, setRowsPerPage] = useState(12); // Changed to 12 for grid layout
-	const [searchTerm, setSearchTerm] = useState('');
+	const [searchTerm, setSearchTerm] = useState("");
 	const [openAddDialog, setOpenAddDialog] = useState(false);
 	const [openEditDialog, setOpenEditDialog] = useState(false);
 	const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState('');
-	const [success, setSuccess] = useState('');
+	const [error, setError] = useState("");
+	const [success, setSuccess] = useState("");
 	const [books, setBooks] = useState([]);
 	const [authors, setAuthors] = useState([]);
 	const [fetchingBooks, setFetchingBooks] = useState(true);
-	const [fetchError, setFetchError] = useState('');
+	const [fetchError, setFetchError] = useState("");
 	const [selectedBook, setSelectedBook] = useState(null);
 	const [selectedImage, setSelectedImage] = useState(null);
 	const [imagePreview, setImagePreview] = useState(null);
 	const [authorTabValue, setAuthorTabValue] = useState(0); // 0 for new author, 1 for existing author
-	const [selectedAuthorId, setSelectedAuthorId] = useState('');
+	const [selectedAuthorId, setSelectedAuthorId] = useState("");
 	const [newBook, setNewBook] = useState({
-		name: '',
-		genre: '',
-		description: '',
-		publishedYear: '',
-		authorName: '',
-		authorEmail: '',
-		authorAge: '',
-		authorCountry: '',
+		name: "",
+		genre: "",
+		description: "",
+		publishedYear: "",
+		authorName: "",
+		authorEmail: "",
+		authorAge: "",
+		authorCountry: "",
 	});
 	const [editBook, setEditBook] = useState({
-		id: '',
-		name: '',
-		genre: '',
-		description: '',
-		publishedYear: '',
-		authorId: '',
-		available: true
+		id: "",
+		name: "",
+		genre: "",
+		description: "",
+		publishedYear: "",
+		authorId: "",
+		available: true,
 	});
 
-	const genres = ['FICTIONAL', 'NON_FICTIONAL', 'GEOGRAPHY', 'HISTORY', 'POLITICAL_SCIENCE', 'BOTANY', 'CHEMISTRY', 'MATHEMATICS', 'PHYSICS'];
+	const genres = [
+		"FICTIONAL",
+		"NON_FICTIONAL",
+		"GEOGRAPHY",
+		"HISTORY",
+		"POLITICAL_SCIENCE",
+		"BOTANY",
+		"CHEMISTRY",
+		"MATHEMATICS",
+		"PHYSICS",
+	];
 
-	// Fetch books from the database
+	async function uploadImage(file) {
+		try {
+			const storageRef = ref(storage, `images/${file.name}`);
+			const snapshot = await uploadBytes(storageRef, file);
+			const downloadURL = await getDownloadURL(snapshot.ref);
+
+			console.log("File available at", downloadURL);
+			return downloadURL;
+		} catch (error) {
+			console.error("Error uploading file:", error);
+			throw error;
+		}
+	}
+
+
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				setFetchingBooks(true);
 
-				// Fetch books
-				console.log("Fetching books from API...");
 				const booksData = await bookService.getAllBooks();
 				console.log("Raw books data:", JSON.stringify(booksData));
 				setBooks(Array.isArray(booksData) ? booksData : []);
 				console.log("Books state after update:", books.length);
 
-				// Fetch authors
 				const authorsData = await authorService.getAllAuthors();
 				setAuthors(Array.isArray(authorsData) ? authorsData : []);
 
-				setFetchError('');
+				setFetchError("");
 			} catch (err) {
-				console.error('Error fetching data:', err);
-				setFetchError('Failed to load books. Please try again later.');
+				console.error("Error fetching data:", err);
+				setFetchError("Failed to load books. Please try again later.");
 				setBooks([]); // Set empty array on error
 			} finally {
 				setFetchingBooks(false);
@@ -111,10 +134,11 @@ const Books = () => {
 	}, []);
 
 	// Filter books based on search term
-	const filteredBooks = books.filter((book) =>
-		book.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-		book.genre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-		book.author?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+	const filteredBooks = books.filter(
+		(book) =>
+			book.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			book.genre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			book.author?.name?.toLowerCase().includes(searchTerm.toLowerCase())
 	);
 
 	const handleChangePage = (event, newPage) => {
@@ -128,19 +152,19 @@ const Books = () => {
 
 	const handleOpenAddDialog = () => {
 		setNewBook({
-			name: '',
-			genre: '',
-			authorName: '',
-			authorEmail: '',
-			authorAge: '',
-			authorCountry: '',
+			name: "",
+			genre: "",
+			authorName: "",
+			authorEmail: "",
+			authorAge: "",
+			authorCountry: "",
 		});
-		setSelectedAuthorId('');
+		setSelectedAuthorId("");
 		setAuthorTabValue(0);
 		setSelectedImage(null);
 		setImagePreview(null);
-		setError('');
-		setSuccess('');
+		setError("");
+		setSuccess("");
 		setOpenAddDialog(true);
 	};
 
@@ -156,17 +180,17 @@ const Books = () => {
 				id: book.id,
 				name: book.name,
 				genre: book.genre,
-				description: book.description || '',
-				publishedYear: book.publishedYear || '',
-				authorId: book.author?.id || '',
-				available: book.available
+				description: book.description || "",
+				publishedYear: book.publishedYear || "",
+				authorId: book.author?.id || "",
+				available: book.available,
 			});
-			setError('');
-			setSuccess('');
+			setError("");
+			setSuccess("");
 			setOpenEditDialog(true);
 		} catch (err) {
-			console.error('Error fetching book details:', err);
-			alert('Failed to fetch book details. Please try again.');
+			console.error("Error fetching book details:", err);
+			alert("Failed to fetch book details. Please try again.");
 		} finally {
 			setLoading(false);
 		}
@@ -190,7 +214,7 @@ const Books = () => {
 		const { name, value } = e.target;
 		setNewBook({
 			...newBook,
-			[name]: value
+			[name]: value,
 		});
 	};
 
@@ -198,7 +222,7 @@ const Books = () => {
 		const { name, value } = e.target;
 		setEditBook({
 			...editBook,
-			[name]: value
+			[name]: value,
 		});
 	};
 
@@ -220,75 +244,84 @@ const Books = () => {
 		// Validate form
 		if (authorTabValue === 0) {
 			// New author validation
-			if (!newBook.name || !newBook.genre || !newBook.authorName || !newBook.authorEmail || !newBook.authorAge || !newBook.authorCountry) {
-				setError('Please fill in all required fields');
+			if (
+				!newBook.name ||
+				!newBook.genre ||
+				!newBook.authorName ||
+				!newBook.authorEmail ||
+				!newBook.authorAge ||
+				!newBook.authorCountry
+			) {
+				setError("Please fill in all required fields");
 				return;
 			}
 		} else {
 			// Existing author validation
 			if (!newBook.name || !newBook.genre || !selectedAuthorId) {
-				setError('Please fill in all required fields');
+				setError("Please fill in all required fields");
 				return;
 			}
 		}
 
 		setLoading(true);
-		setError('');
+		setError("");
 
 		try {
 			// Create FormData object for multipart/form-data
 			const formData = new FormData();
-			formData.append('name', newBook.name);
-			formData.append('genre', newBook.genre);
+			formData.append("name", newBook.name);
+			formData.append("genre", newBook.genre);
 
 			// Handle optional fields
-			formData.append('description', newBook.description || '');
+			formData.append("description", newBook.description || "");
 
 			// Handle publishedYear
 			if (newBook.publishedYear && !isNaN(parseInt(newBook.publishedYear))) {
-				formData.append('publishedYear', newBook.publishedYear);
+				formData.append("publishedYear", newBook.publishedYear);
 			}
 
 			// Add author information
 			if (authorTabValue === 0) {
 				// New author
-				formData.append('authorName', newBook.authorName);
-				formData.append('authorEmail', newBook.authorEmail);
-				formData.append('authorAge', newBook.authorAge);
-				formData.append('authorCountry', newBook.authorCountry);
+				formData.append("authorName", newBook.authorName);
+				formData.append("authorEmail", newBook.authorEmail);
+				formData.append("authorAge", newBook.authorAge);
+				formData.append("authorCountry", newBook.authorCountry);
 			} else {
 				// Existing author - get author details from the selected author
-				const selectedAuthor = authors.find(author => author.id === parseInt(selectedAuthorId));
+				const selectedAuthor = authors.find(
+					(author) => author.id === parseInt(selectedAuthorId)
+				);
 				if (selectedAuthor) {
-					formData.append('authorName', selectedAuthor.name);
-					formData.append('authorEmail', selectedAuthor.email);
-					formData.append('authorAge', selectedAuthor.age.toString());
-					formData.append('authorCountry', selectedAuthor.country);
+					formData.append("authorName", selectedAuthor.name);
+					formData.append("authorEmail", selectedAuthor.email);
+					formData.append("authorAge", selectedAuthor.age.toString());
+					formData.append("authorCountry", selectedAuthor.country);
 				} else {
-					setError('Selected author not found');
+					setError("Selected author not found");
 					setLoading(false);
 					return;
 				}
 			}
 
-			// Add image if selected
 			if (selectedImage) {
-				formData.append('image', selectedImage);
+				const imageUrl = await uploadImage(selectedImage);
+				formData.append("image", imageUrl);
 			}
 
-			console.log("Submitting form data to createWithImage endpoint");
-			for (let [key, value] of formData.entries()) {
-				console.log(`${key}: ${value instanceof File ? 'File: ' + value.name + ' (' + value.size + ' bytes)' : value}`);
+			// Display the values
+			for (const value of formData.values()) {
+				console.log(value);
 			}
 
 			// Use the createWithImage endpoint that handles both book data and image in one request
 			const response = await bookService.createBookWithImage(formData);
-			console.log('Book created with image:', response);
+			console.log("Book created with image:", response);
 
-			setSuccess('Book created successfully');
+			setSuccess("Book created successfully");
 
 			// Set success message
-			setSuccess('Book created successfully');
+			setSuccess("Book created successfully");
 
 			// Refresh book list
 			const updatedBooks = await bookService.getAllBooks();
@@ -298,10 +331,9 @@ const Books = () => {
 			setTimeout(() => {
 				setOpenAddDialog(false);
 			}, 1500);
-
 		} catch (err) {
-			console.error('Error creating book:', err);
-			setError(err.message || 'Failed to create book');
+			console.error("Error creating book:", err);
+			setError(err.message || "Failed to create book");
 		} finally {
 			setLoading(false);
 		}
@@ -310,12 +342,12 @@ const Books = () => {
 	const handleEditBook = async () => {
 		// Validate form
 		if (!editBook.name || !editBook.genre) {
-			setError('Please fill in all required fields');
+			setError("Please fill in all required fields");
 			return;
 		}
 
 		setLoading(true);
-		setError('');
+		setError("");
 
 		try {
 			console.log("Preparing to update book with ID:", editBook.id);
@@ -326,15 +358,20 @@ const Books = () => {
 				name: editBook.name,
 				genre: editBook.genre,
 				description: editBook.description,
-				publishedYear: editBook.publishedYear ? parseInt(editBook.publishedYear) : null,
+				publishedYear: editBook.publishedYear
+					? parseInt(editBook.publishedYear)
+					: null,
 				author: { id: editBook.authorId },
-				available: editBook.available
+				available: editBook.available,
 			};
 
-			console.log("Updating book with data:", JSON.stringify(bookData, null, 2));
+			console.log(
+				"Updating book with data:",
+				JSON.stringify(bookData, null, 2)
+			);
 			const result = await bookService.updateBook(bookData);
 			console.log("Update result:", result);
-			setSuccess('Book updated successfully');
+			setSuccess("Book updated successfully");
 
 			// Refresh book list
 			const updatedBooks = await bookService.getAllBooks();
@@ -344,10 +381,9 @@ const Books = () => {
 			setTimeout(() => {
 				setOpenEditDialog(false);
 			}, 1500);
-
 		} catch (err) {
-			console.error('Error updating book:', err);
-			setError(err.response?.data?.message || 'Failed to update book');
+			console.error("Error updating book:", err);
+			setError(err.response?.data?.message || "Failed to update book");
 		} finally {
 			setLoading(false);
 		}
@@ -361,14 +397,14 @@ const Books = () => {
 			await bookService.deleteBook(selectedBook.id);
 
 			// Remove the deleted book from the state
-			setBooks(books.filter(book => book.id !== selectedBook.id));
+			setBooks(books.filter((book) => book.id !== selectedBook.id));
 
 			handleCloseDeleteDialog();
 			// Show success message
-			alert('Book deleted successfully');
+			alert("Book deleted successfully");
 		} catch (err) {
-			console.error('Error deleting book:', err);
-			alert('Failed to delete book. Please try again.');
+			console.error("Error deleting book:", err);
+			alert("Failed to delete book. Please try again.");
 		} finally {
 			setLoading(false);
 		}
@@ -376,7 +412,14 @@ const Books = () => {
 
 	return (
 		<Box className="page-container">
-			<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+			<Box
+				sx={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					mb: 3,
+				}}
+			>
 				<Typography variant="h4" component="h1" className="section-title">
 					Books
 				</Typography>
@@ -421,7 +464,7 @@ const Books = () => {
 							</MenuItem>
 							{genres.map((g) => (
 								<MenuItem key={g} value={g}>
-									{g.replace('_', ' ')}
+									{g.replace("_", " ")}
 								</MenuItem>
 							))}
 						</Select>
@@ -455,7 +498,7 @@ const Books = () => {
 
 			{/* Loading indicator */}
 			{fetchingBooks ? (
-				<Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+				<Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
 					<CircularProgress />
 				</Box>
 			) : (
@@ -467,37 +510,65 @@ const Books = () => {
 								.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
 								.map((book) => (
 									<Grid item xs={12} sm={6} md={4} lg={3} key={book.id}>
-										<Card className="card-hover" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-											<Box sx={{ position: 'relative' }}>
+										<Card
+											className="card-hover"
+											sx={{
+												height: "100%",
+												display: "flex",
+												flexDirection: "column",
+											}}
+										>
+											<Box sx={{ position: "relative" }}>
 												<CardMedia
 													component="img"
 													height="200"
-													image={bookService.getBookImageUrl(book.id)}
+													image={book.coverImage ? book.coverImage : bookService.getBookImageUrl(book.id)}
 													alt={book.name}
-													sx={{ objectFit: 'contain', p: 2, bgcolor: '#f5f5f5' }}
+													sx={{
+														objectFit: "cover",
+														p: 0,
+														bgcolor: "#f5f5f5",
+													}}
 													onError={(e) => {
-														console.log(`Image failed to load for book ID: ${book.id}`);
-														e.target.src = '/placeholder-book.png';
+														console.log(
+															`Image failed to load for book ID: ${book.id}`
+														);
+														e.target.src = "/placeholder-book.png";
 													}}
 												/>
-
 											</Box>
 											<CardContent sx={{ flexGrow: 1 }}>
-												<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-													<Typography variant="h6" component="h2" gutterBottom noWrap>
+												<Box
+													sx={{
+														display: "flex",
+														justifyContent: "space-between",
+														alignItems: "flex-start",
+														mb: 1,
+													}}
+												>
+													<Typography
+														variant="h6"
+														component="h2"
+														gutterBottom
+														noWrap
+													>
 														{book.name}
 													</Typography>
 													<Chip
-														label={book.available ? 'Available' : 'Borrowed'}
+														label={book.available ? "Available" : "Borrowed"}
 														size="small"
-														color={book.available ? 'success' : 'error'}
+														color={book.available ? "success" : "error"}
 													/>
 												</Box>
-												<Typography variant="body2" color="text.secondary" gutterBottom>
-													by {book.author?.name || 'Unknown'}
+												<Typography
+													variant="body2"
+													color="text.secondary"
+													gutterBottom
+												>
+													by {book.author?.name || "Unknown"}
 												</Typography>
 												<Chip
-													label={book.genre?.replace('_', ' ')}
+													label={book.genre?.replace("_", " ")}
 													size="small"
 													variant="outlined"
 													sx={{ mt: 1 }}
@@ -534,9 +605,11 @@ const Books = () => {
 								))
 						) : (
 							<Grid item xs={12}>
-								<Box sx={{ textAlign: 'center', py: 4 }}>
+								<Box sx={{ textAlign: "center", py: 4 }}>
 									<Typography variant="body1">
-										{searchTerm ? 'No books match your search' : 'No books found'}
+										{searchTerm
+											? "No books match your search"
+											: "No books found"}
 									</Typography>
 								</Box>
 							</Grid>
@@ -544,7 +617,7 @@ const Books = () => {
 					</Grid>
 
 					{/* Pagination */}
-					<Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+					<Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
 						<Pagination
 							count={Math.ceil(filteredBooks.length / rowsPerPage)}
 							page={page + 1}
@@ -556,14 +629,19 @@ const Books = () => {
 			)}
 
 			{/* Add Book Dialog */}
-			<Dialog open={openAddDialog} onClose={handleCloseAddDialog} maxWidth="md" fullWidth>
+			<Dialog
+				open={openAddDialog}
+				onClose={handleCloseAddDialog}
+				maxWidth="md"
+				fullWidth
+			>
 				<DialogTitle>
 					Add New Book
 					<IconButton
 						aria-label="close"
 						onClick={handleCloseAddDialog}
 						sx={{
-							position: 'absolute',
+							position: "absolute",
 							right: 8,
 							top: 8,
 						}}
@@ -612,7 +690,7 @@ const Books = () => {
 								>
 									{genres.map((genre) => (
 										<MenuItem key={genre} value={genre}>
-											{genre.replace('_', ' ')}
+											{genre.replace("_", " ")}
 										</MenuItem>
 									))}
 								</Select>
@@ -644,15 +722,22 @@ const Books = () => {
 								placeholder="e.g., 2023"
 								disabled={loading}
 								InputProps={{
-									inputProps: { min: 1000, max: new Date().getFullYear() }
+									inputProps: { min: 1000, max: new Date().getFullYear() },
 								}}
 							/>
 						</Grid>
 						<Grid item xs={12}>
-							<Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
+							<Box
+								sx={{
+									display: "flex",
+									flexDirection: "column",
+									alignItems: "center",
+									mt: 2,
+								}}
+							>
 								<input
 									accept="image/*"
-									style={{ display: 'none' }}
+									style={{ display: "none" }}
 									id="book-cover-upload"
 									type="file"
 									onChange={handleImageChange}
@@ -669,11 +754,11 @@ const Books = () => {
 									</Button>
 								</label>
 								{imagePreview && (
-									<Box sx={{ mt: 2, textAlign: 'center' }}>
+									<Box sx={{ mt: 2, textAlign: "center" }}>
 										<img
 											src={imagePreview}
 											alt="Book cover preview"
-											style={{ maxWidth: '100%', maxHeight: '200px' }}
+											style={{ maxWidth: "100%", maxHeight: "200px" }}
 										/>
 										<Typography variant="caption" display="block">
 											Cover Preview
@@ -690,8 +775,11 @@ const Books = () => {
 						Author Details
 					</Typography>
 
-					<Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-						<Tabs value={authorTabValue} onChange={(e, newValue) => setAuthorTabValue(newValue)}>
+					<Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
+						<Tabs
+							value={authorTabValue}
+							onChange={(e, newValue) => setAuthorTabValue(newValue)}
+						>
 							<Tab label="Add New Author" />
 							<Tab label="Select Existing Author" />
 						</Tabs>
@@ -756,7 +844,9 @@ const Books = () => {
 						<Grid container spacing={2}>
 							<Grid item xs={12}>
 								<FormControl fullWidth required>
-									<InputLabel id="author-select-label">Select Author</InputLabel>
+									<InputLabel id="author-select-label">
+										Select Author
+									</InputLabel>
 									<Select
 										labelId="author-select-label"
 										value={selectedAuthorId}
@@ -774,16 +864,30 @@ const Books = () => {
 							</Grid>
 							{selectedAuthorId && (
 								<Grid item xs={12}>
-									<Box sx={{ mt: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+									<Box
+										sx={{ mt: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}
+									>
 										{(() => {
-											const author = authors.find(a => a.id === parseInt(selectedAuthorId));
+											const author = authors.find(
+												(a) => a.id === parseInt(selectedAuthorId)
+											);
 											return author ? (
 												<>
-													<Typography variant="subtitle1">Author Details</Typography>
-													<Typography variant="body2">Name: {author.name}</Typography>
-													<Typography variant="body2">Email: {author.email}</Typography>
-													<Typography variant="body2">Age: {author.age}</Typography>
-													<Typography variant="body2">Country: {author.country}</Typography>
+													<Typography variant="subtitle1">
+														Author Details
+													</Typography>
+													<Typography variant="body2">
+														Name: {author.name}
+													</Typography>
+													<Typography variant="body2">
+														Email: {author.email}
+													</Typography>
+													<Typography variant="body2">
+														Age: {author.age}
+													</Typography>
+													<Typography variant="body2">
+														Country: {author.country}
+													</Typography>
 												</>
 											) : null;
 										})()}
@@ -794,26 +898,33 @@ const Books = () => {
 					)}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={handleCloseAddDialog} disabled={loading}>Cancel</Button>
+					<Button onClick={handleCloseAddDialog} disabled={loading}>
+						Cancel
+					</Button>
 					<Button
 						variant="contained"
 						onClick={handleAddBook}
 						disabled={loading}
 					>
-						{loading ? 'Adding...' : 'Add Book'}
+						{loading ? "Adding..." : "Add Book"}
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Edit Book Dialog */}
-			<Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
+			<Dialog
+				open={openEditDialog}
+				onClose={handleCloseEditDialog}
+				maxWidth="sm"
+				fullWidth
+			>
 				<DialogTitle>
 					Edit Book
 					<IconButton
 						aria-label="close"
 						onClick={handleCloseEditDialog}
 						sx={{
-							position: 'absolute',
+							position: "absolute",
 							right: 8,
 							top: 8,
 						}}
@@ -858,7 +969,7 @@ const Books = () => {
 								>
 									{genres.map((genre) => (
 										<MenuItem key={genre} value={genre}>
-											{genre.replace('_', ' ')}
+											{genre.replace("_", " ")}
 										</MenuItem>
 									))}
 								</Select>
@@ -890,7 +1001,7 @@ const Books = () => {
 								placeholder="e.g., 2023"
 								disabled={loading}
 								InputProps={{
-									inputProps: { min: 1000, max: new Date().getFullYear() }
+									inputProps: { min: 1000, max: new Date().getFullYear() },
 								}}
 							/>
 						</Grid>
@@ -901,7 +1012,9 @@ const Books = () => {
 									labelId="edit-status-label"
 									name="available"
 									value={editBook.available}
-									onChange={(e) => setEditBook({ ...editBook, available: e.target.value })}
+									onChange={(e) =>
+										setEditBook({ ...editBook, available: e.target.value })
+									}
 									label="Status"
 									disabled={loading}
 								>
@@ -913,13 +1026,15 @@ const Books = () => {
 					</Grid>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={handleCloseEditDialog} disabled={loading}>Cancel</Button>
+					<Button onClick={handleCloseEditDialog} disabled={loading}>
+						Cancel
+					</Button>
 					<Button
 						variant="contained"
 						onClick={handleEditBook}
 						disabled={loading}
 					>
-						{loading ? 'Updating...' : 'Update Book'}
+						{loading ? "Updating..." : "Update Book"}
 					</Button>
 				</DialogActions>
 			</Dialog>
@@ -931,16 +1046,17 @@ const Books = () => {
 				aria-labelledby="alert-dialog-title"
 				aria-describedby="alert-dialog-description"
 			>
-				<DialogTitle id="alert-dialog-title">
-					Confirm Delete
-				</DialogTitle>
+				<DialogTitle id="alert-dialog-title">Confirm Delete</DialogTitle>
 				<DialogContent>
 					<DialogContentText id="alert-dialog-description">
-						Are you sure you want to delete book "{selectedBook?.name}"? This action cannot be undone.
+						Are you sure you want to delete book "{selectedBook?.name}"? This
+						action cannot be undone.
 					</DialogContentText>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={handleCloseDeleteDialog} disabled={loading}>Cancel</Button>
+					<Button onClick={handleCloseDeleteDialog} disabled={loading}>
+						Cancel
+					</Button>
 					<Button
 						onClick={handleDeleteBook}
 						color="error"
@@ -948,7 +1064,7 @@ const Books = () => {
 						disabled={loading}
 						autoFocus
 					>
-						{loading ? 'Deleting...' : 'Delete'}
+						{loading ? "Deleting..." : "Delete"}
 					</Button>
 				</DialogActions>
 			</Dialog>

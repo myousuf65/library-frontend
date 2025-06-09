@@ -20,6 +20,7 @@ import NotFound from './pages/NotFound';
 import StudentBooks from './pages/student/StudentBooks';
 import StudentTransactions from './pages/student/StudentTransactions';
 import StudentProfile from './pages/student/StudentProfile';
+import Borrow from './pages/Borrow';
 
 function App() {
 	return (
@@ -32,9 +33,11 @@ function App() {
 						<Route path="/login" element={<Login />} />
 						<Route path="/register" element={<Register />} />
 						<Route path="/admin" element={<Layout userType="admin" />}>
+							{/* <Route path="/borrow" element={<Borrow /> } /> */}
 							<Route index element={<AdminDashboard />} />
 							<Route path="books" element={<Books />} />
 							<Route path="books/:id" element={<BookDetails />} />
+							<Route path="borrow" element={<Borrow />} />
 							<Route path="students" element={<Students />} />
 							<Route path="students/:id" element={<StudentDetails />} />
 							<Route path="authors" element={<Authors />} />
@@ -42,7 +45,6 @@ function App() {
 							<Route path="*" element={<NotFound />} />
 						</Route>
 
-						{/* Student Routes */}
 						<Route path="/student" element={<Layout userType="student" />}>
 							<Route index element={<StudentDashboard />} />
 							<Route path="books" element={<StudentBooks />} />

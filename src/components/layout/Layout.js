@@ -15,7 +15,7 @@ const Layout = ({ userType = 'admin' }) => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex'}}>
       <Navbar toggleSidebar={toggleSidebar} userType={userType} />
       <Sidebar 
         open={sidebarOpen} 
@@ -31,7 +31,6 @@ const Layout = ({ userType = 'admin' }) => {
           px: { xs: 2, sm: 3 },
           pb: 3,
           width: { sm: `calc(100% - ${sidebarOpen ? 240 : 0}px)` },
-          ml: { sm: sidebarOpen ? '240px' : 0 },
           transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
