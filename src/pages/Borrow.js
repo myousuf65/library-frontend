@@ -1,18 +1,22 @@
-import * as faceapi from 'face-api.js';
-import React, { useRef, useEffect, useState } from 'react';
+import * as faceapi from "face-api.js";
+import React, { useRef, useEffect, useState } from "react";
+import { Box, Typography, Paper, Button } from "@mui/material";
 
 function Borrow() {
+  let FACE_API = process.env.REACT_APP_FACE_BACKEND;
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [captureVideo, setCaptureVideo] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const imgCanvasRef = useRef(null);
   const videoWidth = 640;
   const videoHeight = 480;
 
   // Load models once
   useEffect(() => {
+    console.log("face api", FACE_API);
     const loadModels = async () => {
-      const MODEL_URL = process.env.PUBLIC_URL + '/models';
+      const MODEL_URL = process.env.PUBLIC_URL + "/models";
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
@@ -29,25 +33,22 @@ function Borrow() {
     setCaptureVideo(true);
     navigator.mediaDevices
       .getUserMedia({ video: { width: videoWidth, height: videoHeight } })
-      .then(stream => {
+      .then((stream) => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
         }
       })
-      .catch(err => {
-        console.error('error:', err);
+      .catch((err) => {
+        console.error("error:", err);
       });
   };
 
-  const closeWebcam = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      videoRef.current.pause();
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
+  useEffect(() => {
+    if (modelsLoaded && !captureVideo) {
+      startVideo();
     }
-    setCaptureVideo(false);
-  };
+  }, [modelsLoaded]);
 
   // Detection loop
   useEffect(() => {
@@ -66,7 +67,7 @@ function Borrow() {
         .withFaceLandmarks()
         .withFaceExpressions();
       const resizedDetections = faceapi.resizeResults(detections, displaySize);
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       faceapi.draw.drawDetections(canvas, resizedDetections);
       faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
@@ -76,64 +77,135 @@ function Borrow() {
     return () => clearInterval(interval);
   }, [modelsLoaded, captureVideo]);
 
+  const handleTakePhoto = async () => {
+    const video = videoRef.current;
+    const imgcanvas = imgCanvasRef.current;
+    const displaySize = { width: videoWidth, height: videoHeight };
+
+    if (!video || !imgcanvas) return;
+
+    // Set canvas size and draw video frame
+    imgcanvas.width = displaySize.width;
+    imgcanvas.height = displaySize.height;
+    const ctx = imgcanvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, displaySize.width, displaySize.height);
+
+    // Convert canvas to Blob
+    imgcanvas.toBlob(
+      async (blob) => {
+        if (!(blob instanceof Blob)) {
+          alert("Failed to create image blob.");
+          return;
+        }
+
+        const imageURL = URL.createObjectURL(blob);
+        const img = new window.Image();
+        img.src = imageURL;
+        await new Promise((resolve) => (img.onload = resolve));
+        const detections = await faceapi
+          .detectAllFaces(img, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks();
+
+        if (detections.length === 0) {
+          alert("Could not detect a human in the image.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", blob, "photo.jpeg");
+
+        fetch(`${FACE_API}/match/compare/`, {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log(data['matched']);
+            sessionStorage.setItem("borrow", data["matched"]);
+            // show an alert
+            // start borrowing book for data['matched']
+          })
+          .catch((err) => {
+            console.log(err.message)
+          })
+      },
+      "image/jpeg",
+      0.95
+    );
+  };
+
   return (
-    <div>
-      <div style={{ textAlign: 'center', padding: '10px' }}>
-        {captureVideo && modelsLoaded ? (
-          <button
-            onClick={closeWebcam}
-            style={{
-              cursor: 'pointer',
-              backgroundColor: 'green',
-              color: 'white',
-              padding: '15px',
-              fontSize: '25px',
-              border: 'none',
-              borderRadius: '10px',
-            }}
-          >
-            Close Webcam
-          </button>
-        ) : (
-          <button
-            onClick={startVideo}
-            style={{
-              cursor: 'pointer',
-              backgroundColor: 'green',
-              color: 'white',
-              padding: '15px',
-              fontSize: '25px',
-              border: 'none',
-              borderRadius: '10px',
-            }}
-          >
-            Open Webcam
-          </button>
-        )}
-      </div>
-      {captureVideo ? (
-        modelsLoaded ? (
-          <div style={{ position: 'relative', width: videoWidth, height: videoHeight, margin: '0 auto' }}>
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              width={videoWidth}
-              height={videoHeight}
-              style={{ position: 'absolute', top: 0, left: 0, borderRadius: '10px' }}
-            />
-            <canvas
-              ref={canvasRef}
-              width={videoWidth}
-              height={videoHeight}
-              style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
-            />
-          </div>
-        ) : (
-          <div>loading...</div>
-        )
-      ) : null}
-    </div>
+    <Box className="page-container">
+      <h1 style={{ textAlign: "center" }}>Borrow Books</h1>
+      <Paper
+        elevation={3}
+        sx={{ maxWidth: 700, mx: "auto", p: 4, borderRadius: 4 }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          {captureVideo ? (
+            modelsLoaded ? (
+              <>
+                <Box
+                  sx={{
+                    position: "relative",
+                    width: videoWidth,
+                    height: videoHeight,
+                    borderRadius: 2,
+                    overflow: "hidden",
+                    boxShadow: 2,
+                  }}
+                >
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    width={videoWidth}
+                    height={videoHeight}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      borderRadius: 8,
+                    }}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    width={videoWidth}
+                    height={videoHeight}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      pointerEvents: "none",
+                      borderRadius: 8,
+                    }}
+                  />
+                  <canvas ref={imgCanvasRef} style={{ display: "none" }} />
+                </Box>
+                <Button
+                  variant="contained"
+                  sx={{ mt: 2 }}
+                  onClick={handleTakePhoto}
+                  disabled={!modelsLoaded || !captureVideo}
+                >
+                  Take Photo
+                </Button>
+              </>
+            ) : (
+              <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+                Loading models...
+              </Typography>
+            )
+          ) : null}
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 
