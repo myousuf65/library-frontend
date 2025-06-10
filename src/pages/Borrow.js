@@ -1,6 +1,6 @@
 import * as faceapi from "face-api.js";
 import React, { useRef, useEffect, useState } from "react";
-import { Box, Typography, Paper, Button } from "@mui/material";
+import { Box, Typography, Paper, Button, Dialog, DialogTitle, DialogContent, CircularProgress, DialogActions } from "@mui/material";
 
 function Borrow() {
   let FACE_API = process.env.REACT_APP_FACE_BACKEND;
@@ -11,6 +11,10 @@ function Borrow() {
   const imgCanvasRef = useRef(null);
   const videoWidth = 640;
   const videoHeight = 480;
+  const [loading, setLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalType, setModalType] = useState("success"); // "success", "error", "loading"
 
   // Load models once
   useEffect(() => {
@@ -107,12 +111,19 @@ function Borrow() {
           .withFaceLandmarks();
 
         if (detections.length === 0) {
-          alert("Could not detect a human in the image.");
+          setModalType("error");
+          setModalMessage("Could not detect a human in the image.");
+          setModalOpen(true);
           return;
         }
 
         const formData = new FormData();
         formData.append("image", blob, "photo.jpeg");
+
+        setLoading(true);
+        setModalOpen(true);
+        setModalType("loading");
+        setModalMessage("Processing, please wait...");
 
         fetch(`${FACE_API}/match/compare/`, {
           method: "POST",
@@ -120,14 +131,16 @@ function Borrow() {
         })
           .then((res) => res.json())
           .then((data) => {
-            console.log(data['matched']);
+            setLoading(false);
+            setModalType("success");
+            setModalMessage(`Start borrowing book for ${data['matched']}`);
             sessionStorage.setItem("borrow", data["matched"]);
-            // show an alert
-            // start borrowing book for data['matched']
           })
           .catch((err) => {
-            console.log(err.message)
-          })
+            setLoading(false);
+            setModalType("error");
+            setModalMessage(`Error: ${err.message}`);
+          });
       },
       "image/jpeg",
       0.95
@@ -205,6 +218,24 @@ function Borrow() {
           ) : null}
         </Box>
       </Paper>
+      <Dialog open={modalOpen} onClose={() => { if (!loading) setModalOpen(false); }}>
+        <DialogTitle>
+          {modalType === "loading" && "Loading"}
+          {modalType === "success" && "Success"}
+          {modalType === "error" && "Error"}
+        </DialogTitle>
+        <DialogContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {modalType === "loading" && <CircularProgress />}
+          <Typography>
+            {modalMessage}
+          </Typography>
+        </DialogContent>
+        {modalType !== "loading" && (
+          <DialogActions>
+            <Button onClick={() => setModalOpen(false)}>Close</Button>
+          </DialogActions>
+        )}
+      </Dialog>
     </Box>
   );
 }

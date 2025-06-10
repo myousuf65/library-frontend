@@ -17,6 +17,7 @@
     "face-api.js": "^0.22.2",
     "firebase": "^11.9.0",
     "react": "^18.2.0",
+    "react-barcode-reader": "^0.0.2",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.11.1",
     "react-scripts": "5.0.1",

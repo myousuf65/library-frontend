@@ -21,6 +21,7 @@ import StudentBooks from './pages/student/StudentBooks';
 import StudentTransactions from './pages/student/StudentTransactions';
 import StudentProfile from './pages/student/StudentProfile';
 import Borrow from './pages/Borrow';
+import ScanBooks from './pages/ScanBooks';
 
 function App() {
 	return (
@@ -38,6 +39,7 @@ function App() {
 							<Route path="books" element={<Books />} />
 							<Route path="books/:id" element={<BookDetails />} />
 							<Route path="borrow" element={<Borrow />} />
+							<Route path="scan" element={<ScanBooks />} />
 							<Route path="students" element={<Students />} />
 							<Route path="students/:id" element={<StudentDetails />} />
 							<Route path="authors" element={<Authors />} />

@@ -26,7 +26,7 @@ const drawerWidth = 200;
 const adminMenuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
   { text: 'Books', icon: <MenuBookIcon />, path: '/admin/books' },
-  // { text: 'Students', icon: <PeopleIcon />, path: '/admin/students' },
+  { text: 'Borrow Books', icon: <PeopleIcon />, path: '/admin/borrow' },
   { text: 'Authors', icon: <PersonIcon />, path: '/admin/authors' },
   { text: 'Transactions', icon: <SwapHorizIcon />, path: '/admin/transactions' },
 ];
