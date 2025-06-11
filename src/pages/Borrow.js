@@ -1,6 +1,7 @@
 import * as faceapi from "face-api.js";
 import React, { useRef, useEffect, useState } from "react";
 import { Box, Typography, Paper, Button, Dialog, DialogTitle, DialogContent, CircularProgress, DialogActions } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 function Borrow() {
   let FACE_API = process.env.REACT_APP_FACE_BACKEND;
@@ -15,6 +16,7 @@ function Borrow() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState("success"); // "success", "error", "loading"
+  const navigate = useNavigate();
 
   // Load models once
   useEffect(() => {
@@ -133,7 +135,7 @@ function Borrow() {
           .then((data) => {
             setLoading(false);
             setModalType("success");
-            setModalMessage(`Start borrowing book for ${data['matched']}`);
+            setModalMessage(`Student ID: ${data['matched']}`);
             sessionStorage.setItem("borrow", data["matched"]);
           })
           .catch((err) => {
@@ -224,11 +226,21 @@ function Borrow() {
           {modalType === "success" && "Success"}
           {modalType === "error" && "Error"}
         </DialogTitle>
-        <DialogContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
           {modalType === "loading" && <CircularProgress />}
           <Typography>
             {modalMessage}
           </Typography>
+          {modalType === "success" && (
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={() => navigate("/admin/scan")}
+            >
+              Start Borrowing
+            </Button>
+          )}
         </DialogContent>
         {modalType !== "loading" && (
           <DialogActions>
