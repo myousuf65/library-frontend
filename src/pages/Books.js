@@ -65,6 +65,7 @@ const Books = () => {
 		genre: "",
 		description: "",
 		publishedYear: "",
+		barcode: "",
 		authorName: "",
 		authorEmail: "",
 		authorAge: "",
@@ -154,6 +155,9 @@ const Books = () => {
 		setNewBook({
 			name: "",
 			genre: "",
+			description: "",
+			publishedYear: "",
+			barcode: "",
 			authorName: "",
 			authorEmail: "",
 			authorAge: "",
@@ -247,6 +251,7 @@ const Books = () => {
 			if (
 				!newBook.name ||
 				!newBook.genre ||
+				!newBook.barcode ||
 				!newBook.authorName ||
 				!newBook.authorEmail ||
 				!newBook.authorAge ||
@@ -257,7 +262,7 @@ const Books = () => {
 			}
 		} else {
 			// Existing author validation
-			if (!newBook.name || !newBook.genre || !selectedAuthorId) {
+			if (!newBook.name || !newBook.genre || !newBook.barcode || !selectedAuthorId) {
 				setError("Please fill in all required fields");
 				return;
 			}
@@ -271,6 +276,7 @@ const Books = () => {
 			const formData = new FormData();
 			formData.append("name", newBook.name);
 			formData.append("genre", newBook.genre);
+			formData.append("barcode", newBook.barcode);
 
 			// Handle optional fields
 			formData.append("description", newBook.description || "");
@@ -695,6 +701,19 @@ const Books = () => {
 									))}
 								</Select>
 							</FormControl>
+						</Grid>
+						<Grid item xs={12} md={6}>
+							<TextField
+								fullWidth
+								label="Barcode"
+								variant="outlined"
+								name="barcode"
+								value={newBook.barcode}
+								onChange={handleInputChange}
+								required
+								disabled={loading}
+								placeholder="Scan or enter barcode"
+							/>
 						</Grid>
 						<Grid item xs={12}>
 							<TextField

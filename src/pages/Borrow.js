@@ -4,7 +4,7 @@ import { Box, Typography, Paper, Button, Dialog, DialogTitle, DialogContent, Cir
 import { useNavigate } from "react-router-dom";
 
 function Borrow() {
-  let FACE_API = process.env.REACT_APP_FACE_BACKEND;
+  let FACE_API = "https://libback.ap.ngrok.io";
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [captureVideo, setCaptureVideo] = useState(false);
   const videoRef = useRef(null);
