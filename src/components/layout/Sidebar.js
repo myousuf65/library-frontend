@@ -30,6 +30,7 @@ const adminMenuItems = [
 	{ text: 'Borrow Books', icon: <PeopleIcon />, path: '/admin/borrow' },
 	{ text: 'Authors', icon: <PersonIcon />, path: '/admin/authors' },
 	{ text: 'Transactions', icon: <SwapHorizIcon />, path: '/admin/transactions' },
+	{ text: 'Help', icon: <HelpIcon />, path: '/admin/faq' },
 ];
 
 // Student menu items
@@ -38,10 +39,10 @@ const studentMenuItems = [
 	{ text: 'Browse Books', icon: <MenuBookIcon />, path: '/student/books' },
 	{ text: 'My Transactions', icon: <SwapHorizIcon />, path: '/student/transactions' },
 	{ text: 'My Profile', icon: <AccountCircleIcon />, path: '/student/profile' },
+	{ text: 'Help', icon: <HelpIcon />, path: '/student/faq' },
 ];
 
 const secondaryMenuItems = [
-	{ text: 'Help', icon: <HelpIcon />, path: '/help' },
 ];
 
 const Sidebar = ({ open, onClose, variant, userType = 'admin' }) => {

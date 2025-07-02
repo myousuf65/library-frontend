@@ -22,6 +22,7 @@ import StudentTransactions from './pages/student/StudentTransactions';
 import StudentProfile from './pages/student/StudentProfile';
 import Borrow from './pages/Borrow';
 import ScanBooks from './pages/ScanBooks';
+import FAQPage from './pages/FAQ';
 
 function App() {
 	return (
@@ -35,6 +36,7 @@ function App() {
 						<Route path="/register" element={<Register />} />
 						<Route path="/admin" element={<Layout userType="admin" />}>
 							{/* <Route path="/borrow" element={<Borrow /> } /> */}
+							<Route path="faq" element={<FAQPage />} />
 							<Route index element={<AdminDashboard />} />
 							<Route path="books" element={<Books />} />
 							<Route path="books/:id" element={<BookDetails />} />
@@ -48,6 +50,7 @@ function App() {
 						</Route>
 
 						<Route path="/student" element={<Layout userType="student" />}>
+							<Route path="faq" element={<FAQPage />} />
 							<Route index element={<StudentDashboard />} />
 							<Route path="books" element={<StudentBooks />} />
 							<Route path="books/:id" element={<BookDetails />} />
