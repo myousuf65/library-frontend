@@ -129,7 +129,7 @@ const StudentProfile = () => {
           createdOn: student.createdOn || '',
           booksIssued: borrowed.length,
           maxBooks: student.maxBooks || 5,
-          fines: student.fines || 0,
+          fines: Number(student.fine) || 0,
           user: student.user || (studentData && studentData.user) || null,
         });
         setFormData({
@@ -205,7 +205,7 @@ const StudentProfile = () => {
         country: formData.country,
         cardStatus: studentData.cardStatus || 'ACTIVATED',
         maxBooks: studentData.maxBooks || 5,
-        fines: studentData.fines || 0,
+        fines: Number(studentData.fines) || 0,
         // Always include user field if present
         ...(studentData.user && studentData.user.id ? { user: { id: studentData.user.id } } : {}),
       };
@@ -393,137 +393,7 @@ const StudentProfile = () => {
                   overflow: 'hidden',
                 }}
               >
-                <CardHeader 
-                  title="Account Activity" 
-                  sx={{ 
-                    bgcolor: alpha(theme.palette.primary.main, 0.05),
-                    py: 2.5,
-                    '& .MuiCardHeader-title': {
-                      fontSize: '1.25rem',
-                      fontWeight: 'bold',
-                      color: theme.palette.primary.main
-                    }
-                  }}
-                />
-                <CardContent>
-                  <List>
-                    <ListItem sx={{ 
-                      py: 2, 
-                      px: 3, 
-                      borderRadius: 2,
-                      bgcolor: alpha(theme.palette.primary.main, 0.05),
-                      mb: 2
-                    }}>
-                      <ListItemIcon>
-                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2) }}>
-                          <CreditCardIcon color="primary" />
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={<Typography variant="subtitle1" fontWeight="medium">Card Created</Typography>}
-                        secondary={`Your library card was created on ${studentData.createdOn}`}
-                      />
-                    </ListItem>
-                    {studentData.fines > 0 && (
-                      <ListItem sx={{ 
-                        py: 2, 
-                        px: 3, 
-                        borderRadius: 2,
-                        bgcolor: alpha(theme.palette.error.main, 0.05),
-                      }}>
-                        <ListItemIcon>
-                          <Avatar sx={{ bgcolor: alpha(theme.palette.error.main, 0.2) }}>
-                            <LocalAtmIcon color="error" />
-                          </Avatar>
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={<Typography variant="subtitle1" fontWeight="medium" color="error.main">Outstanding Fines</Typography>}
-                          secondary={`You have $${studentData.fines.toFixed(2)} in unpaid fines`}
-                        />
-                        <Button 
-                          variant="contained" 
-                          size="small" 
-                          color="error"
-                          sx={{ borderRadius: 2 }}
-                        >
-                          Pay Now
-                        </Button>
-                      </ListItem>
-                    )}
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Card 
-                elevation={3} 
-                sx={{ 
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                }}
-              >
-                <CardHeader 
-                  title="Account Settings" 
-                  sx={{ 
-                    bgcolor: alpha(theme.palette.primary.main, 0.05),
-                    py: 2.5,
-                    '& .MuiCardHeader-title': {
-                      fontSize: '1.25rem',
-                      fontWeight: 'bold',
-                      color: theme.palette.primary.main
-                    }
-                  }}
-                />
-                <CardContent>
-                  <List>
-                    <ListItem sx={{ 
-                      py: 2, 
-                      px: 3, 
-                      borderRadius: 2,
-                      bgcolor: alpha(theme.palette.success.main, 0.05),
-                      mb: 2
-                    }}>
-                      <ListItemIcon>
-                        <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.2) }}>
-                          <NotificationsActiveIcon color="success" />
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={<Typography variant="subtitle1" fontWeight="medium">Email Notifications</Typography>}
-                        secondary="Receive email alerts for due dates and new books"
-                      />
-                      <Chip 
-                        label="Enabled" 
-                        color="success" 
-                        sx={{ fontWeight: 'medium', boxShadow: '0 2px 5px rgba(0,0,0,0.08)' }}
-                      />
-                    </ListItem>
-                    <ListItem sx={{ 
-                      py: 2, 
-                      px: 3, 
-                      borderRadius: 2,
-                      bgcolor: alpha(theme.palette.primary.main, 0.05),
-                    }}>
-                      <ListItemIcon>
-                        <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.2) }}>
-                          <SecurityIcon color="primary" />
-                        </Avatar>
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={<Typography variant="subtitle1" fontWeight="medium">Privacy Settings</Typography>}
-                        secondary="Control how your information is shared"
-                      />
-                      <Button 
-                        variant="outlined" 
-                        size="small"
-                        sx={{ borderRadius: 2, borderWidth: 2, '&:hover': { borderWidth: 2 } }}
-                      >
-                        Manage
-                      </Button>
-                    </ListItem>
-                  </List>
-                </CardContent>
+                
               </Card>
             </Grid>
           </Grid>
