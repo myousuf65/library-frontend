@@ -39,7 +39,7 @@ const authService = {
 
   getCurrentUser: async () => {
     try {
-      const response = await api.get('/currentUser');
+      const response = await api.get(`/currentUser/${sessionStorage.getItem("username")}`);
       return response.data;
     } catch (error) {
       throw error;

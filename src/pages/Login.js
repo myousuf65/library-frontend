@@ -38,13 +38,15 @@ const Login = () => {
 
     try {
       const userData = await login(username, password);
-      
+     
+      console.log("user data", userData);
+      sessionStorage.setItem("username", userData.username);
       // Store remember me preference
-      if (rememberMe) {
-        localStorage.setItem('rememberedUser', username);
-      } else {
-        localStorage.removeItem('rememberedUser');
-      }
+      // if (rememberMe) {
+      //   localStorage.setItem('rememberedUser', username);
+      // } else {
+      //   localStorage.removeItem('rememberedUser');
+      // }
 
       // Redirect based on user role
       if (userData.roles.includes('ADMIN')) {

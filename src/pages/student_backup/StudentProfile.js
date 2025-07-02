@@ -42,7 +42,6 @@ import SecurityIcon from '@mui/icons-material/Security';
 import { alpha } from '@mui/material/styles';
 import authService from '../../services/authService';
 import studentService from '../../services/studentService';
-import transactionService from '../../services/transactionService';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 
@@ -61,7 +60,6 @@ const StudentProfile = () => {
   const [studentData, setStudentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [borrowedBooks, setBorrowedBooks] = useState([]);
 
   // Form state for edit dialog
   const [formData, setFormData] = useState({
@@ -85,39 +83,6 @@ const StudentProfile = () => {
         const user = await authService.getCurrentUser();
         if (!user.studentId) throw new Error('No student ID found for current user.');
         const student = await studentService.getStudentById(user.studentId);
-        // Fetch transactions to calculate currently borrowed books
-        const transactions = await transactionService.getStudentTransactions(user.studentId);
-        // Calculate currently borrowed books (same logic as transactions page)
-        const maxAllowedDays = 10; // Should match backend config
-        const borrowed = [];
-        const issueTransactions = transactions.filter(t => t.isIssueOperation);
-        for (const transaction of issueTransactions) {
-          if (transaction.book) {
-            const hasReturnAfterIssue = transactions.some(t =>
-              !t.isIssueOperation &&
-              t.book &&
-              transaction.book &&
-              t.book.id === transaction.book.id &&
-              new Date(t.transactionDate) > new Date(transaction.transactionDate)
-            );
-            if (!hasReturnAfterIssue) {
-              const issueDate = new Date(transaction.transactionDate);
-              const dueDate = new Date(issueDate);
-              dueDate.setDate(dueDate.getDate() + maxAllowedDays);
-              const today = new Date();
-              const daysLeft = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
-              borrowed.push({
-                id: transaction.book.id,
-                title: transaction.book.name,
-                author: transaction.book.author ? transaction.book.author.name : 'Unknown',
-                issuedDate: issueDate.toISOString().split('T')[0],
-                dueDate: dueDate.toISOString().split('T')[0],
-                daysLeft: daysLeft
-              });
-            }
-          }
-        }
-        setBorrowedBooks(borrowed);
         setStudentData({
           id: student.id,
           name: student.name,
@@ -127,7 +92,7 @@ const StudentProfile = () => {
           cardId: student.studentId || student.cardId || 'N/A',
           cardStatus: student.cardStatus || 'ACTIVATED',
           createdOn: student.createdOn || '',
-          booksIssued: borrowed.length,
+          booksIssued: student.booksIssued || (student.books ? student.books.length : 0),
           maxBooks: student.maxBooks || 5,
           fines: student.fines || 0,
           user: student.user || (studentData && studentData.user) || null,
@@ -240,7 +205,7 @@ const StudentProfile = () => {
   };
 
   // Calculate borrowing capacity percentage
-  const borrowingCapacity = studentData ? Math.round((studentData.booksIssued / studentData.maxBooks) * 100) : 0;
+  const borrowingCapacity = studentData ? (studentData.booksIssued / studentData.maxBooks) * 100 : 0;
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
@@ -284,10 +249,6 @@ const StudentProfile = () => {
                   }}
                 />
                 <CardContent sx={{ p: 0 }}>
-                  <Box sx={{ px: 3, pt: 2, pb: 1, textAlign: 'center' }}>
-                    <Typography variant="h6" fontWeight="bold">{studentData.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">{studentData.email}</Typography>
-                  </Box>
                   <Grid container>
                     <Grid item xs={12} sm={4} sx={{ 
                       p: 3, 
@@ -323,15 +284,11 @@ const StudentProfile = () => {
                         <Typography variant="body1" color="text.secondary" gutterBottom>
                           Borrowing Capacity
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mt: 2, mb: 3 }}>
-                          <Typography variant="body2" fontWeight="bold" color="primary" sx={{ minWidth: 36, mr: 1, textAlign: 'right' }}>
-                            {borrowingCapacity}%
-                          </Typography>
+                        <Box sx={{ position: 'relative', mt: 2, mb: 3 }}>
                           <LinearProgress 
                             variant="determinate" 
                             value={borrowingCapacity} 
                             sx={{ 
-                              flex: 1,
                               height: 10, 
                               borderRadius: 5,
                               bgcolor: alpha(theme.palette.primary.main, 0.1),
@@ -341,6 +298,17 @@ const StudentProfile = () => {
                               }
                             }}
                           />
+                          <Box sx={{ 
+                            position: 'absolute', 
+                            top: -28, 
+                            left: `calc(${borrowingCapacity}% - 18px)`,
+                            width: 36,
+                            textAlign: 'center'
+                          }}>
+                            <Typography variant="body2" fontWeight="bold" color="primary">
+                              {borrowingCapacity}%
+                            </Typography>
+                          </Box>
                         </Box>
                         <Typography variant="body2" fontWeight="medium">
                           {studentData.booksIssued} of {studentData.maxBooks} books
