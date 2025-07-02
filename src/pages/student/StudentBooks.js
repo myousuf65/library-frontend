@@ -159,10 +159,10 @@ const StudentBooks = () => {
 
   // Get book cover image URL
   const getBookCoverUrl = (book) => {
-    if (book.hasImage) {
-      return bookService.getBookImageUrl(book.id);
+    if (book.coverImage) {
+      return book.coverImage;
     }
-    return '/book-cover-placeholder.svg';
+    return bookService.getBookImageUrl(book.id);
   };
 
   if (studentIdLoading) {
@@ -271,6 +271,9 @@ const StudentBooks = () => {
                         image={getBookCoverUrl(book)}
                         alt={book.name}
                         sx={{ objectFit: 'contain', p: 2, bgcolor: '#f5f5f5' }}
+                        onError={(e) => {
+                          e.target.src = "/book-cover-placeholder.svg";
+                        }}
                       />
                       <IconButton
                         onClick={() => toggleFavorite(book.id)}
