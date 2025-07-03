@@ -24,6 +24,7 @@ import {
   Alert,
   CircularProgress,
   DialogContentText,
+  Snackbar,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -31,6 +32,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloseIcon from '@mui/icons-material/Close';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import studentService from '../services/studentService';
 
 const Students = () => {
@@ -63,26 +65,62 @@ const Students = () => {
     country: '',
     studentId: '',
   });
+  
+  // State for notifications
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
 
   // Fetch students from the database
+  const fetchStudents = async () => {
+    try {
+      setFetchingStudents(true);
+      const data = await studentService.getAllStudents();
+      console.log("Fetched students:", data);
+      setStudents(data || []);
+      setFetchError('');
+    } catch (err) {
+      console.error('Error fetching students:', err);
+      setFetchError('Failed to load students. Please try again later.');
+      setStudents([]); // Set empty array on error
+    } finally {
+      setFetchingStudents(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        setFetchingStudents(true);
-        const data = await studentService.getAllStudents();
-        console.log("Fetched students:", data);
-        setStudents(data || []);
-        setFetchError('');
-      } catch (err) {
-        console.error('Error fetching students:', err);
-        setFetchError('Failed to load students. Please try again later.');
-        setStudents([]); // Set empty array on error
-      } finally {
-        setFetchingStudents(false);
+    fetchStudents();
+  }, []);
+
+  // Snackbar handlers
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
+  const showNotification = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  // Listen for refresh events from QR payment modal
+  useEffect(() => {
+    const handleStudentsRefresh = (event) => {
+      console.log('Students refresh triggered:', event.detail);
+      fetchStudents();
+      
+      // Show notification if it's a payment completion
+      if (event.detail && event.detail.message && event.detail.message.includes('Payment completed')) {
+        showNotification('Fine payment completed successfully! Students data has been updated.', 'success');
       }
     };
 
-    fetchStudents();
+    window.addEventListener('adminDataRefresh', handleStudentsRefresh);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('adminDataRefresh', handleStudentsRefresh);
+    };
   }, []);
 
   // Filter students based on search term
@@ -270,17 +308,30 @@ const Students = () => {
 
   return (
     <Box className="page-container">
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" className="section-title">
+        <Typography variant="h4" component="h1" gutterBottom>
           Students
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleOpenAddDialog}
-        >
-          Add Student
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={fetchStudents}
+            disabled={fetchingStudents}
+            sx={{ borderRadius: 2 }}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleOpenAddDialog}
+            sx={{ borderRadius: 2 }}
+          >
+            Add Student
+          </Button>
+        </Box>
       </Box>
 
       {/* Search */}
@@ -326,6 +377,7 @@ const Students = () => {
                   <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Email</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Age</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Country</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Fine</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: 'white' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -344,6 +396,14 @@ const Students = () => {
                         <TableCell>{student.emailId}</TableCell>
                         <TableCell>{student.age}</TableCell>
                         <TableCell>{student.country}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={`$${parseFloat(student.fine || 0).toFixed(2)}`}
+                            color={parseFloat(student.fine || 0) > 0 ? 'error' : 'success'}
+                            size="small"
+                            variant={parseFloat(student.fine || 0) > 0 ? 'filled' : 'outlined'}
+                          />
+                        </TableCell>
                         <TableCell>
                           <IconButton
                             component={Link}
@@ -375,7 +435,7 @@ const Students = () => {
                     ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={8} align="center">
                       {searchTerm ? 'No students match your search' : 'No students found'}
                     </TableCell>
                   </TableRow>
@@ -648,6 +708,18 @@ const Students = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
