@@ -18,7 +18,13 @@ import {
   LinearProgress,
   useTheme,
   IconButton,
+  Modal,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
+import { QRCodeSVG } from "qrcode.react";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -47,110 +53,115 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fine, setFine] = useState(0);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const BACKEND_URL = process.env.REACT_APP_LIBRARY_BACKEND;
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const user = await authService.getCurrentUser();
+  // Move fetchDashboardData outside useEffect
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const user = await authService.getCurrentUser();
 
-        //get overdue books
-        fetchOverdue(user);
+      // Only fetch overdue books if the student has borrowed books
+      // This prevents unnecessary fine calculations
+      console.log("Checking if student has overdue books...");
+      fetchOverdue(user);
 
-        if (!user.studentId)
-          throw new Error("No student ID found for current user.");
-        const student = await studentService.getStudentById(user.studentId);
-        const transactions = await transactionService.getStudentTransactions(
-          user.studentId
-        );
-        const sortedTransactions = [...transactions].sort(
-          (a, b) => new Date(b.transactionDate) - new Date(a.transactionDate)
-        );
-        setRecentTransactions(
-          sortedTransactions.slice(0, 5).map((t) => ({
-            id: t.id,
-            book: t.book ? t.book.name : "Unknown Book",
-            type: t.isIssueOperation ? "issue" : "return",
-            date: new Date(t.transactionDate).toISOString().split("T")[0],
-          }))
-        );
+      if (!user.studentId)
+        throw new Error("No student ID found for current user.");
+      const student = await studentService.getStudentById(user.studentId);
+      const transactions = await transactionService.getStudentTransactions(
+        user.studentId
+      );
+      const sortedTransactions = [...transactions].sort(
+        (a, b) => new Date(b.transactionDate) - new Date(a.transactionDate)
+      );
+      setRecentTransactions(
+        sortedTransactions.slice(0, 5).map((t) => ({
+          id: t.id,
+          book: t.book ? t.book.name : "Unknown Book",
+          type: t.isIssueOperation ? "issue" : "return",
+          date: new Date(t.transactionDate).toISOString().split("T")[0],
+        }))
+      );
 
-        const borrowed = [];
-        const issueTransactions = transactions.filter(
-          (t) => t.isIssueOperation
-        );
-        for (const transaction of issueTransactions) {
-          if (transaction.book) {
-            // Check if this book has a return transaction after this issue transaction
-            const hasReturnAfterIssue = transactions.some(
-              (t) =>
-                !t.isIssueOperation &&
-                t.book &&
-                transaction.book &&
-                t.book.id === transaction.book.id &&
-                new Date(t.transactionDate) >
-                  new Date(transaction.transactionDate)
+      const borrowed = [];
+      const issueTransactions = transactions.filter(
+        (t) => t.isIssueOperation
+      );
+      for (const transaction of issueTransactions) {
+        if (transaction.book) {
+          // Check if this book has a return transaction after this issue transaction
+          const hasReturnAfterIssue = transactions.some(
+            (t) =>
+              !t.isIssueOperation &&
+              t.book &&
+              transaction.book &&
+              t.book.id === transaction.book.id &&
+              new Date(t.transactionDate) >
+                new Date(transaction.transactionDate)
+          );
+          if (!hasReturnAfterIssue) {
+            const issueDate = new Date(transaction.transactionDate);
+            const dueDate = new Date(issueDate);
+            dueDate.setDate(dueDate.getDate() + maxAllowedDays);
+            const today = new Date();
+            const daysLeft = Math.ceil(
+              (dueDate - today) / (1000 * 60 * 60 * 24)
             );
-            if (!hasReturnAfterIssue) {
-              const issueDate = new Date(transaction.transactionDate);
-              const dueDate = new Date(issueDate);
-              dueDate.setDate(dueDate.getDate() + maxAllowedDays);
-              const today = new Date();
-              const daysLeft = Math.ceil(
-                (dueDate - today) / (1000 * 60 * 60 * 24)
-              );
-              borrowed.push({
-                id: transaction.book.id,
-                title: transaction.book.name,
-                author: transaction.book.author
-                  ? transaction.book.author.name
-                  : "Unknown",
-                issuedDate: issueDate.toISOString().split("T")[0],
-                dueDate: dueDate.toISOString().split("T")[0],
-                daysLeft: daysLeft,
-              });
-            }
+            borrowed.push({
+              id: transaction.book.id,
+              title: transaction.book.name,
+              author: transaction.book.author
+                ? transaction.book.author.name
+                : "Unknown",
+              issuedDate: issueDate.toISOString().split("T")[0],
+              dueDate: dueDate.toISOString().split("T")[0],
+              daysLeft: daysLeft,
+            });
           }
         }
-        setBorrowedBooks(borrowed);
-
-        console.log("current user is", studentInfo);
-
-        setStudentInfo({
-          name: student.name,
-          email: student.emailId,
-          cardId: student.studentId || student.cardId || "N/A",
-          cardStatus: student.cardStatus || "ACTIVATED",
-          booksIssued: borrowed.length,
-          maxBooks: student.maxBooks || 5,
-          fines: student.fine || 0,
-        });
-
-        // 5. (Optional) Fetch recommended books here if you have logic/API for it
-        setRecommendedBooks([]); // Placeholder
-        setError(null);
-      } catch (err) {
-        setError(err.message || "Failed to load dashboard data.");
-      } finally {
-        setLoading(false);
       }
-    };
+      setBorrowedBooks(borrowed);
 
+      setStudentInfo({
+        name: student.name,
+        email: student.emailId,
+        cardId: student.studentId || student.cardId || "N/A",
+        cardStatus: student.cardStatus || "ACTIVATED",
+        booksIssued: borrowed.length,
+        maxBooks: student.maxBooks || 5,
+        fines: student.fine || 0,
+      });
+
+      setRecommendedBooks([]); // Placeholder
+      setError(null);
+    } catch (err) {
+      setError(err.message || "Failed to load dashboard data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboardData();
   }, []);
 
-
-
   useEffect(() => {
-        console.log("student info has been set", studentInfo)
-
+    console.log("student info has been set", studentInfo)
   },[studentInfo])
 
   const fetchOverdue = async (user) => {
-    console.log("user is" + user.studentId);
+    console.log("fetchOverdue called for user ID:", user.studentId);
     try {
+      // First, get the current student data to check if they already have a fine
+      const student = await studentService.getStudentById(user.studentId);
+      const currentFine = parseFloat(student.fine || 0);
+      
+      console.log(`Current fine for student ${student.name}: $${currentFine}`);
+      
+      // Check if the student has overdue books that would warrant a fine
       let response = await transactionService.getOverdueTransactions();
 
       if (!response || !Array.isArray(response)) {
@@ -158,29 +169,69 @@ const StudentDashboard = () => {
         return;
       }
 
+      console.log("Total overdue transactions found:", response.length);
+
+      // Filter overdue transactions for this specific student
+      const studentOverdueTransactions = response.filter(item => 
+        item.student && item.student.id === user.studentId
+      );
+
+      console.log("Overdue transactions for this student:", studentOverdueTransactions.length);
+
+      if (studentOverdueTransactions.length === 0) {
+        console.log("No overdue transactions for this student, skipping fine calculation");
+        return;
+      }
+
       let totalFine = 0;
 
-      response.forEach((item) => {
+      studentOverdueTransactions.forEach((item) => {
         let todayDate = new Date();
         let borrowDate = new Date(item.transactionDate);
         let diff = todayDate - borrowDate;
         let daysDifference = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-        console.log("fine will be ", (daysDifference - 10) * 0.2);
-        totalFine += (daysDifference - 10) * 0.2;
+        console.log(`Book: ${item.book?.name}, Days since borrowed: ${daysDifference}, Max allowed: 10`);
+
+        // Only add fine if the book is actually overdue (more than 10 days)
+        if (daysDifference > 10) {
+          const fineAmount = (daysDifference - 10) * 0.2;
+          console.log(`Book is overdue by ${daysDifference - 10} days, fine: $${fineAmount}`);
+          totalFine += fineAmount;
+        } else {
+          console.log(`Book is not overdue yet (${daysDifference} days < 10 days)`);
+        }
       });
 
-      const url = BACKEND_URL + "/transaction/overdue";
+      console.log("Total calculated fine:", totalFine);
 
-      let payload = {
-        fine: totalFine,
-        studentId: user.studentId,
-      };
+      // Only set fine if there are actually overdue books with fines AND the calculated fine is different from current fine
+      if (totalFine > 0 && Math.abs(totalFine - currentFine) > 0.01) {
+        console.log(`Setting fine for overdue books: $${totalFine} (was $${currentFine})`);
+        const url = BACKEND_URL + "/transaction/overdue";
 
-      console.log("overdue api payload: ", payload);
+        let payload = {
+          fine: totalFine,
+          studentId: user.studentId,
+        };
 
-      let fineResponse = await transactionService.setFine(payload);
-      console.log("fine response, ", fineResponse);
+        console.log("overdue api payload: ", payload);
+
+        let fineResponse = await transactionService.setFine(payload);
+        console.log("fine response: ", fineResponse);
+      } else if (totalFine === 0 && currentFine > 0) {
+        // If there are no overdue fines but the student has a fine, clear it
+        console.log(`Clearing fine: no overdue books but student has $${currentFine} fine`);
+        let payload = {
+          fine: 0,
+          studentId: user.studentId,
+        };
+
+        let fineResponse = await transactionService.setFine(payload);
+        console.log("fine cleared response: ", fineResponse);
+      } else {
+        console.log(`No fine update needed: calculated=${totalFine}, current=${currentFine}`);
+      }
     } catch (error) {
       console.error("Error fetching overdue transactions:", error);
     }
@@ -190,6 +241,32 @@ const StudentDashboard = () => {
   const borrowingCapacity = studentInfo
     ? (studentInfo.booksIssued / studentInfo.maxBooks) * 100
     : 0;
+
+  // Generate QR code data for payment
+  const generatePaymentQRData = () => {
+    if (!studentInfo) return "";
+    
+    const paymentData = {
+      studentId: studentInfo.cardId,
+      studentName: studentInfo.name,
+      amount: studentInfo.fines,
+      type: "library_fine_payment",
+      timestamp: new Date().toISOString(),
+      libraryId: "LIB001" // You can make this configurable
+    };
+    
+    return JSON.stringify(paymentData);
+  };
+
+  const handlePayNow = () => {
+    setQrModalOpen(true);
+  };
+
+  const handleCloseQRModal = () => {
+    setQrModalOpen(false);
+    // Refetch student data after closing the modal
+    fetchDashboardData();
+  };
 
   if (loading) {
     return (
@@ -464,8 +541,9 @@ const StudentDashboard = () => {
                       color="error"
                       size="small"
                       sx={{ ml: "auto", borderRadius: 2 }}
+                      onClick={handlePayNow}
                     >
-                      Pay Now
+                      More Information
                     </Button>
                   </Box>
                 ) : (
@@ -1011,6 +1089,103 @@ const StudentDashboard = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* QR Code Payment Modal */}
+      <Dialog
+        open={qrModalOpen}
+        onClose={handleCloseQRModal}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            textAlign: "center",
+            fontWeight: "bold",
+            pb: 1,
+          }}
+        >
+          Pay Library Fines
+        </DialogTitle>
+        <DialogContent sx={{ textAlign: "center", py: 3 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 3,
+            }}
+          >
+            <Box
+              sx={{
+                p: 3,
+                border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.primary.main, 0.02),
+              }}
+            >
+              <QRCodeSVG
+                value={generatePaymentQRData()}
+                size={200}
+                level="M"
+                includeMargin={true}
+              />
+            </Box>
+            
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="h6" fontWeight="bold" gutterBottom>
+                ${studentInfo?.fines || 0}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Scan this QR code at Library Counter to pay your fines
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Student: {studentInfo?.name} | ID: {studentInfo?.cardId}
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                width: "100%",
+                maxWidth: 300,
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Payment Instructions:
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: "left" }}>
+                1. Open your payment app (PayPal, Wechat, AliPay, etc.)
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: "left" }}>
+                2. Scan the QR code above
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: "left" }}>
+                3. Confirm the payment amount
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ textAlign: "left" }}>
+                4. Complete the transaction
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button
+            onClick={handleCloseQRModal}
+            variant="outlined"
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

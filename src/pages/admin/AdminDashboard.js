@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Box,
@@ -20,6 +20,8 @@ import {
   Tooltip,
   Stack,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PeopleIcon from '@mui/icons-material/People';
@@ -34,10 +36,11 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { alpha } from '@mui/material/styles';
 import dashboardService from '../../services/dashboardService';
 
-const AdminDashboard = () => {
+const AdminDashboard = forwardRef((props, ref) => {
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,37 +61,97 @@ const AdminDashboard = () => {
   // State for overdue books
   const [overdueBooks, setOverdueBooks] = useState([]);
   
+  // State for notifications
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  
+  // Move fetchDashboardData outside useEffect so it can be called externally
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch dashboard statistics
+      const stats = await dashboardService.getDashboardStats();
+      setDashboardStats(stats);
+      
+      // Fetch recent transactions
+      const transactions = await dashboardService.getRecentTransactions(3);
+      setRecentTransactions(transactions);
+      
+      // Fetch popular books
+      const books = await dashboardService.getPopularBooks(3);
+      setPopularBooks(books);
+      
+      // Fetch overdue books
+      const overdue = await dashboardService.getOverdueBooks(2);
+      setOverdueBooks(overdue);
+      
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setError("Failed to load dashboard data. Please try again later.");
+      setLoading(false);
+    }
+  };
+  
+  // Expose refresh function through ref
+  useImperativeHandle(ref, () => ({
+    refresh: fetchDashboardData
+  }));
+  
   // Fetch data when component mounts
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch dashboard statistics
-        const stats = await dashboardService.getDashboardStats();
-        setDashboardStats(stats);
-        
-        // Fetch recent transactions
-        const transactions = await dashboardService.getRecentTransactions(3);
-        setRecentTransactions(transactions);
-        
-        // Fetch popular books
-        const books = await dashboardService.getPopularBooks(3);
-        setPopularBooks(books);
-        
-        // Fetch overdue books
-        const overdue = await dashboardService.getOverdueBooks(2);
-        setOverdueBooks(overdue);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        setError("Failed to load dashboard data. Please try again later.");
-        setLoading(false);
+    fetchDashboardData();
+  }, []);
+
+  // Snackbar handlers
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
+  const showNotification = (message, severity = 'success') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  };
+
+  // Listen for refresh events from QR payment modal
+  useEffect(() => {
+    const handleDashboardRefresh = (event) => {
+      console.log('Admin dashboard refresh triggered:', event.detail);
+      fetchDashboardData();
+      
+      // Show notification if it's a payment completion
+      if (event.detail && event.detail.message && event.detail.message.includes('Payment completed')) {
+        showNotification('Fine payment completed successfully! Dashboard data has been updated.', 'success');
       }
     };
-    
-    fetchDashboardData();
+
+    window.addEventListener('adminDataRefresh', handleDashboardRefresh);
+
+    // Also listen for page visibility changes to refresh data when user returns to tab
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, refreshing dashboard data');
+        fetchDashboardData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Set up periodic refresh every 30 seconds to keep data current
+    const intervalId = setInterval(() => {
+      console.log('Periodic dashboard refresh');
+      fetchDashboardData();
+    }, 30000);
+
+    // Cleanup event listeners and interval on component unmount
+    return () => {
+      window.removeEventListener('adminDataRefresh', handleDashboardRefresh);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Display error message if data fetching fails
@@ -138,6 +201,23 @@ const AdminDashboard = () => {
           </Typography>
         </Box>
         <Stack direction="row" spacing={2} sx={{ mt: { xs: 3, md: 0 } }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<RefreshIcon />}
+            onClick={fetchDashboardData}
+            disabled={loading}
+            sx={{ 
+              borderRadius: 2,
+              px: 3,
+              py: 1,
+              borderWidth: 2,
+              '&:hover': {
+                borderWidth: 2,
+              }
+            }}
+          >
+            Refresh
+          </Button>
           <Button 
             variant="contained" 
             startIcon={<AddIcon />}
@@ -873,8 +953,20 @@ const AdminDashboard = () => {
           </Card>
         </Grid>
       </Grid>
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
-};
+});
 
 export default AdminDashboard;
