@@ -127,7 +127,7 @@ function Borrow() {
 				setModalType("loading");
 				setModalMessage("Processing, please wait...");
 
-				fetch(`${FACE_API}/match/compare/`, {
+				fetch(`${FACE_API}/match/compareportal/`, {
 					method: "POST",
 					body: formData,
 				})
@@ -135,8 +135,8 @@ function Borrow() {
 					.then((data) => {
 						setLoading(false);
 						setModalType("success");
-						setModalMessage(`Student ID: ${data['matched']}`);
-						sessionStorage.setItem("borrow", data["matched"]);
+						setModalMessage(`Student ID: ${data['id']}`);
+						sessionStorage.setItem("borrow", JSON.stringify(data));
 					})
 					.catch((err) => {
 						setLoading(false);

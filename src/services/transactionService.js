@@ -45,6 +45,19 @@ const transactionService = {
 		}
 	},
 
+	issueScannedBooks: async (bookId, cardId) => {
+		try {
+			console.log(`API call: Issuing book ${bookId} to student ${cardId}`);
+			const response = await api.post(`/transaction/scan/issueBook?bookId=${bookId}&studentId=${cardId}`);
+			console.log("Issue book response:", response.data);
+			return response.data;
+		} catch (error) {
+			console.error("API error in issueBook:", error.response || error);
+			throw error;
+		}
+	},
+
+
 	returnBook: async (bookId, cardId) => {
 		try {
 			console.log(`API call: Returning book ${bookId} from student ${cardId}`);
@@ -129,9 +142,9 @@ const transactionService = {
 		try {
 			console.log('Clearing fine for student ID:', studentId);
 			// Use the setfine endpoint with fine = 0 since clearfine is not available on ngrok
-			const response = await api.post('/transaction/setfine', { 
-				studentId: studentId, 
-				fine: 0 
+			const response = await api.post('/transaction/setfine', {
+				studentId: studentId,
+				fine: 0
 			});
 			console.log('Clear fine response:', response.data);
 			return response.data;
